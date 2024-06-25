@@ -1,8 +1,143 @@
-generator client {
-  provider = "prisma-client-js"
+datasource db {
+  provider     = "postgresql"
+  url          = env("DATABASE_URL")
+  relationMode = "prisma"
 }
 
-datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "linux-arm64-openssl-3.0.x"]
+}
+
+model User {
+  id              Int           @id @default(autoincrement())
+  name            String?
+  email           String        @unique
+  isAdmin         Boolean       @default(false)
+  isVerified      Boolean       @default(true)
+  subscribed      Boolean       @default(false) // delete
+  subscriptionEnd DateTime?
+  fromFunnel      Boolean       @default(false)
+  password        String
+  uuid            String?
+  createdAt       DateTime      @default(now())
+  CopyCreator     CopyCreator[]
+  stripeData      stripeData[]
+}
+
+model stripeData {
+  id              Int      @id @default(autoincrement())
+  user            User     @relation(fields: [user_id], references: [id])
+  user_id         Int      @unique
+  customer_id     String?   
+  subscription_id String?  
+  plan_id         String?
+  paymentStatus   String?  
+  credit_total    Int      @default(0)
+  credit_balance  Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model Suppliers {
+  id              Int        @id @default(autoincrement())
+  name            String     @unique
+  country         String
+  processing_time Int
+  description     String?
+  image           String[]
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+  Products        Products[]
+}
+
+// Define the main_categories table model
+model MainCategory {
+  id            Int           @id @default(autoincrement())
+  name          String        @unique
+  subcategories Subcategory[] @relation("subcat")
+  Products      Products[]    @relation("prod")
+  icon          String?
+  // CategorySubcategory CategorySubcategory[] @relation("CategorySub")
+}
+
+// Define the subcategories table model
+
+model Subcategory {
+  id             Int          @id @default(autoincrement())
+  name           String
+  main_category  MainCategory @relation("subcat", fields: [mainCategoryId], references: [id])
+  mainCategoryId Int
+  Products       Products[]
+  // CategorySubcategory CategorySubcategory[]
+}
+
+model Group {
+  id          Int          @id @default(autoincrement())
+  name        String
+  description String?
+  Collection  Collection[]
+}
+
+model Collection {
+  id          Int        @id @default(autoincrement())
+  name        String
+  description String?
+  image       String[]
+  group       Group      @relation(fields: [group_id], references: [id])
+  group_id    Int
+  Products    Products[]
+}
+
+model Products {
+  id               Int          @id @default(autoincrement())
+  name             String
+  image            String[]
+  link             String
+  us_shipping_time Int?
+  ww_shipping_time Int?
+  listing_cost     Float
+  sale_price       Float
+  sales_angle      String?
+  desc_heading     String?
+  description      String?
+  benefits         String?
+  ad_copy          String?
+  main_category    MainCategory @relation("prod", fields: [mainCategoryId], references: [id])
+  mainCategoryId   Int
+  subcategory      Subcategory  @relation(fields: [subcategory_id], references: [id])
+  subcategory_id   Int
+  supplier         Suppliers?    @relation(fields: [supplier_id], references: [id])
+  supplier_id      Int?
+  collection       Collection?  @relation(fields: [collection_id], references: [id])
+  collection_id    Int?
+  processing_time  Int?         @default(0)
+  us_shipping_cost Float?       @default(0)
+  return_policy    String?
+  ww_shipping_cost Float?       @default(0)
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+}
+
+model CopyCreator {
+  id                  Int      @id @default(autoincrement())
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  copy_type           String?
+  product_name        String?
+  product_description String?
+  brand_description   String?
+  target_audience     String?
+  price_and_discount  String?
+  product_category    String?
+  // conclusion          String?
+  product_features    String?
+  product_usage       String?
+  product_benefits    String?
+  framework           String?
+  copy                Json?
+  timestamps          String[]
+  user                User     @relation(fields: [user_id], references: [id])
+  user_id             Int
+  isStreamEnded       Boolean  @default(false)
 }

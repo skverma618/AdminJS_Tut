@@ -1,69 +1,54 @@
 import dotenv from 'dotenv';
-import AdminJS from 'adminjs'
-import * as url from 'url'
-import AdminJSExpress from '@adminjs/express'
-import express from 'express'
-import * as AdminJSPrisma from '@adminjs/prisma'
-import { PrismaClient } from '@prisma/client'
+import AdminJS from 'adminjs';
+import * as url from 'url';
+import AdminJSExpress from '@adminjs/express';
+import express from 'express';
+import * as AdminJSPrisma from '@adminjs/prisma';
+import { PrismaClient } from '@prisma/client';
 import { getModelByName } from "@adminjs/prisma";
-import cors from 'cors'
+import cors from 'cors';
 import session from "express-session";
 import Connect from "connect-pg-simple";
 import path from 'path';
-
 const __dirname = url.fileURLToPath(new URL(".", import.meta.url));
-
 dotenv.config({
     path: path.resolve(__dirname, '../.env'),
 });
-
 const app = express();
-
 const DEFAULT_ADMIN = {
     email: process.env.DEFAULT_EMAIL,
     password: process.env.DEFAULT_PASSWORD,
 };
-
-const authenticate = async (email: string, password: string) => {
+const authenticate = async (email, password) => {
     if (email === DEFAULT_ADMIN.email && password === DEFAULT_ADMIN.password) {
         return Promise.resolve(DEFAULT_ADMIN);
     }
     return null;
 };
-
 app.use(cors());
-
-
 app.use(express.static("public"));
 app.use((req, res, next) => {
-    console.log("line 26", req.originalUrl)
+    console.log("line 26", req.originalUrl);
     if (req.originalUrl === "/webhook") {
         next();
-    } else {
+    }
+    else {
         express.json()(req, res, next);
     }
 });
-
-app.use(
-    session({
-        secret: 'sushil',
-        resave: false,
-        saveUninitialized: true,
-    })
-);
-
+app.use(session({
+    secret: 'sushil',
+    resave: false,
+    saveUninitialized: true,
+}));
 app.use(express.static("public"));
-
 // Constants
 var PORT = 8001;
-
 const prisma = new PrismaClient();
-
 AdminJS.registerAdapter({
     Resource: AdminJSPrisma.Resource,
     Database: AdminJSPrisma.Database,
 });
-
 const start = async () => {
     const admin = new AdminJS({
         resources: [
@@ -89,9 +74,7 @@ const start = async () => {
             }
         ],
     });
-
     await admin.watch();
-
     const ConnectSession = Connect(session);
     const sessionStore = new ConnectSession({
         conObject: {
@@ -101,35 +84,24 @@ const start = async () => {
         tableName: "session",
         createTableIfMissing: true,
     });
-
-    const adminRouter = AdminJSExpress.buildAuthenticatedRouter(
-        admin,
-        {
-            authenticate,
-            cookieName: process.env.ADMINJS_COOKIE_NAME,
-            cookiePassword: process.env.ADMINJS_COOKIE_PASSWORD,
+    const adminRouter = AdminJSExpress.buildAuthenticatedRouter(admin, {
+        authenticate,
+        cookieName: process.env.ADMINJS_COOKIE_NAME,
+        cookiePassword: process.env.ADMINJS_COOKIE_PASSWORD,
+    }, null, {
+        store: sessionStore,
+        resave: true,
+        saveUninitialized: true,
+        secret: process.env.ADMINJS_COOKIE_SECRET,
+        cookie: {
+            httpOnly: process.env.NODE_ENV === "production",
+            secure: process.env.NODE_ENV === "production",
         },
-        null,
-        {
-            store: sessionStore,
-            resave: true,
-            saveUninitialized: true,
-            secret: process.env.ADMINJS_COOKIE_SECRET,
-            cookie: {
-                httpOnly: process.env.NODE_ENV === "production",
-                secure: process.env.NODE_ENV === "production",
-            },
-            name: "adminjs",
-        }
-    );
-
+        name: "adminjs",
+    });
     app.use(admin.options.rootPath, adminRouter);
-
     app.listen(PORT, () => {
-        console.log(
-            `AdminJS started on http://localhost:${PORT}${admin.options.rootPath}`
-        );
+        console.log(`AdminJS started on http://localhost:${PORT}${admin.options.rootPath}`);
     });
 };
-
 start();
