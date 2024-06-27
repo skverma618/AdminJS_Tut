@@ -28,7 +28,6 @@ const authenticate = async (email, password) => {
 app.use(cors());
 app.use(express.static("public"));
 app.use((req, res, next) => {
-    console.log("line 26", req.originalUrl);
     if (req.originalUrl === "/webhook") {
         next();
     }
@@ -61,6 +60,10 @@ const start = async () => {
                 options: {},
             },
             {
+                resource: { model: getModelByName("HangoutPlaces"), client: prisma },
+                options: {},
+            },
+            {
                 resource: { model: getModelByName("Subcategory"), client: prisma },
                 options: {},
             },
@@ -87,12 +90,12 @@ const start = async () => {
     const adminRouter = AdminJSExpress.buildAuthenticatedRouter(admin, {
         authenticate,
         cookieName: process.env.ADMINJS_COOKIE_NAME,
-        cookiePassword: process.env.ADMINJS_COOKIE_PASSWORD,
+        cookiePassword: process.env.ADMINJS_COOKIE_PASSWORD || "",
     }, null, {
         store: sessionStore,
         resave: true,
         saveUninitialized: true,
-        secret: process.env.ADMINJS_COOKIE_SECRET,
+        secret: process.env.ADMINJS_COOKIE_SECRET || "",
         cookie: {
             httpOnly: process.env.NODE_ENV === "production",
             secure: process.env.NODE_ENV === "production",

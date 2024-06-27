@@ -58,7 +58,18 @@ model MainCategory {
   subcategories Subcategory[] @relation("subcat")
   Products      Products[]    @relation("prod")
   icon          String?
+
+  HangoutPlaces HangoutPlaces[]
   // CategorySubcategory CategorySubcategory[] @relation("CategorySub")
+}
+
+model HangoutPlaces {
+  id          Int      @id @default(autoincrement())
+  name        String
+  type        MainCategory @relation(fields: [type_id], references: [id])
+  type_id     Int
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
 // Define the subcategories table model
